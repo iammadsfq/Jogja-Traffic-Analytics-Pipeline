@@ -21,8 +21,8 @@ def main() -> None:
     load_dotenv()
 
     bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    source_topic = os.getenv("KAFKA_TOPIC_RAW", "traffic.raw")
-    target_topic = os.getenv("KAFKA_TOPIC_RAW", "traffic.raw")
+    source_topic = os.getenv("KAFKA_TOPIC_SOURCE", "traffic.seed")
+    target_topic = os.getenv("KAFKA_TOPIC_TARGET", os.getenv("KAFKA_TOPIC_RAW", "traffic.raw"))
 
     camera_count = int(os.getenv("MOCK_CAMERA_COUNT", "100"))
     duplicate_factor = int(os.getenv("DUPLICATE_FACTOR", "5"))

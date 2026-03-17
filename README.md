@@ -193,6 +193,8 @@ Catatan Phase 2 (Spark sink):
 - `src/consumer/raw_to_postgres.py`
 - `src/spark/stream_aggregate.py`
 - `scripts/smoke_test_e2e.ps1`
+- `scripts/run_spark_agg.ps1`
+- `scripts/scale_test_100cams.ps1`
 
 ### Quickstart lokal (MVP)
 
@@ -222,6 +224,25 @@ Catatan kompatibilitas Windows:
 - Pada Python 3.13+ di Windows, Kafka client Python tertentu dapat bermasalah.
 - Gunakan script smoke test berbasis container Linux untuk verifikasi cepat:
 	- `powershell -ExecutionPolicy Bypass -File scripts/smoke_test_e2e.ps1`
+
+### Menjalankan Spark aggregate (1 perintah)
+
+- `powershell -ExecutionPolicy Bypass -File scripts/run_spark_agg.ps1`
+
+Script ini otomatis:
+
+- Menjalankan Spark di container Linux.
+- Memasang dependency Python `psycopg` di container.
+- Menambahkan Kafka connector package untuk Structured Streaming.
+
+### Scale test 100 kamera (throughput + latency)
+
+- `powershell -ExecutionPolicy Bypass -File scripts/scale_test_100cams.ps1`
+
+Script ini otomatis:
+
+- Menjalankan seed producer (`traffic.seed`) + mock duplicator 100 kamera + consumer DB.
+- Mengukur rows ingested, throughput (events/s), ingestion lag, dan active camera count.
 
 ### Query cek cepat di PostgreSQL
 
