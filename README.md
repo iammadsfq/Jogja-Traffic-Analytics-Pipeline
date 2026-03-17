@@ -179,12 +179,14 @@ Best practice ingestion:
 - `docker-compose.yml`
 - `.env.example`
 - `requirements.txt`
+- `requirements-runtime.txt`
 - `requirements-inference.txt`
 - `infra/postgres/init/001_init.sql`
 - `src/producer/event_producer.py`
 - `src/producer/mock_duplicator.py`
 - `src/consumer/raw_to_postgres.py`
 - `src/spark/stream_aggregate.py`
+- `scripts/smoke_test_e2e.ps1`
 
 ### Quickstart lokal (MVP)
 
@@ -198,7 +200,8 @@ Prerequisite:
 2. Jalankan infrastruktur:
 	- `docker compose --env-file .env up -d`
 3. Install dependency Python:
-	- `pip install -r requirements.txt`
+	- core pipeline: `pip install -r requirements.txt`
+	- runtime minimal producer/consumer: `pip install -r requirements-runtime.txt`
 	- opsional model inference: `pip install -r requirements-inference.txt`
 4. Jalankan producer event sample:
 	- `python src/producer/event_producer.py`
@@ -207,6 +210,12 @@ Prerequisite:
 6. Opsional simulasi skala kamera (terminal baru):
 	- `python src/producer/mock_duplicator.py`
 7. Buka Grafana di `http://localhost:3000` dan koneksikan data source PostgreSQL.
+
+Catatan kompatibilitas Windows:
+
+- Pada Python 3.13+ di Windows, Kafka client Python tertentu dapat bermasalah.
+- Gunakan script smoke test berbasis container Linux untuk verifikasi cepat:
+	- `powershell -ExecutionPolicy Bypass -File scripts/smoke_test_e2e.ps1`
 
 ### Query cek cepat di PostgreSQL
 

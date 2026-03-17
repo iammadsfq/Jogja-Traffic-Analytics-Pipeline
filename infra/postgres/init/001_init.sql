@@ -32,10 +32,16 @@ SELECT
 FROM fact_traffic_events
 GROUP BY bucket, camera_id, object_type, direction;
 
-SELECT add_continuous_aggregate_policy(
-    'agg_traffic_1m',
-    start_offset => INTERVAL '2 hours',
-    end_offset => INTERVAL '1 minute',
-    schedule_interval => INTERVAL '1 minute'
-)
-ON CONFLICT DO NOTHING;
+DO $$
+BEGIN
+    PERFORM add_continuous_aggregate_policy(
+        'agg_traffic_1m',
+        start_offset => INTERVAL '2 hours',
+        end_offset => INTERVAL '1 minute',
+        schedule_interval => INTERVAL '1 minute'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Policy already exists, skipping';
+END
+$$;
