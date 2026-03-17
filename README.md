@@ -174,6 +174,12 @@ Best practice ingestion:
 4. Hubungkan Grafana ke PostgreSQL -> buat panel latency, throughput, in/out.
 5. Aktifkan mock duplicator untuk uji skala.
 
+Catatan Phase 2 (Spark sink):
+
+- Job `src/spark/stream_aggregate.py` melakukan agregasi 1 menit dan upsert ke tabel `fact_traffic_agg_1m`.
+- Saat menjalankan `spark-submit`, sertakan paket Kafka connector:
+	- `spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 src/spark/stream_aggregate.py`
+
 ### Scaffold yang sudah disiapkan
 
 - `docker-compose.yml`
