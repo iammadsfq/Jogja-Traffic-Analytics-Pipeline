@@ -174,6 +174,47 @@ Best practice ingestion:
 4. Hubungkan Grafana ke PostgreSQL -> buat panel latency, throughput, in/out.
 5. Aktifkan mock duplicator untuk uji skala.
 
+### Scaffold yang sudah disiapkan
+
+- `docker-compose.yml`
+- `.env.example`
+- `requirements.txt`
+- `requirements-inference.txt`
+- `infra/postgres/init/001_init.sql`
+- `src/producer/event_producer.py`
+- `src/producer/mock_duplicator.py`
+- `src/consumer/raw_to_postgres.py`
+- `src/spark/stream_aggregate.py`
+
+### Quickstart lokal (MVP)
+
+Prerequisite:
+
+- Docker Desktop
+- Python 3.10-3.12 direkomendasikan (3.14 sering terkendala wheel untuk paket CV/ML)
+
+1. Siapkan environment file:
+	- copy `.env.example` menjadi `.env`
+2. Jalankan infrastruktur:
+	- `docker compose --env-file .env up -d`
+3. Install dependency Python:
+	- `pip install -r requirements.txt`
+	- opsional model inference: `pip install -r requirements-inference.txt`
+4. Jalankan producer event sample:
+	- `python src/producer/event_producer.py`
+5. Jalankan consumer Kafka ke PostgreSQL (terminal baru):
+	- `python src/consumer/raw_to_postgres.py`
+6. Opsional simulasi skala kamera (terminal baru):
+	- `python src/producer/mock_duplicator.py`
+7. Buka Grafana di `http://localhost:3000` dan koneksikan data source PostgreSQL.
+
+### Query cek cepat di PostgreSQL
+
+Contoh validasi data masuk:
+
+- `SELECT COUNT(*) FROM fact_traffic_events;`
+- `SELECT * FROM fact_traffic_events ORDER BY time DESC LIMIT 10;`
+
 ## 12) Disclaimer
 
 - Project ini ditujukan untuk pembelajaran dan portfolio engineering.
