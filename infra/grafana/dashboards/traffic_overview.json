@@ -181,7 +181,7 @@
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
           "format": "time_series",
-          "rawSql": "SELECT time_bucket('1 minute', time) AS time, SUM(CASE WHEN direction = 'IN' THEN event_count ELSE 0 END) AS \"IN\", SUM(CASE WHEN direction = 'OUT' THEN event_count ELSE 0 END) AS \"OUT\" FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "rawSql": "SELECT time_bucket('1 minute', time) AS time, SUM(CASE WHEN lower(direction) = 'in' THEN event_count ELSE 0 END) AS \"IN\", SUM(CASE WHEN lower(direction) = 'out' THEN event_count ELSE 0 END) AS \"OUT\" FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY 1 ORDER BY 1",
           "refId": "A"
         }
       ],
@@ -215,7 +215,7 @@
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
           "format": "table",
-          "rawSql": "SELECT direction, SUM(event_count) AS total FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY direction ORDER BY total DESC",
+          "rawSql": "SELECT INITCAP(direction) AS metric, SUM(event_count)::bigint AS value FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY direction ORDER BY value DESC",
           "refId": "A"
         }
       ],
@@ -249,7 +249,7 @@
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
           "format": "table",
-          "rawSql": "SELECT object_type, SUM(event_count) AS total FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY object_type ORDER BY total DESC",
+          "rawSql": "SELECT object_type AS metric, SUM(event_count)::bigint AS value FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY object_type ORDER BY value DESC",
           "refId": "A"
         }
       ],
