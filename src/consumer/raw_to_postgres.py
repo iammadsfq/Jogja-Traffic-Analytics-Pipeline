@@ -58,12 +58,15 @@ def main() -> None:
     )
     conn.autocommit = False
 
+    # At-least-once delivery: commit Kafka offsets only after the DB write is
+    # durably committed (see batch flush below). auto_offset_reset=earliest so a
+    # fresh consumer group replays the backlog instead of skipping it.
     consumer = KafkaConsumer(
         topic,
         bootstrap_servers=bootstrap_servers,
         value_deserializer=lambda x: json.loads(x.decode("utf-8")),
-        auto_offset_reset="latest",
-        enable_auto_commit=True,
+        auto_offset_reset="earliest",
+        enable_auto_commit=False,
         group_id="jtap-raw-to-postgres",
     )
 
@@ -77,6 +80,8 @@ def main() -> None:
                 if len(buffer) >= batch_size:
                     cur.executemany(INSERT_SQL, buffer)
                     conn.commit()
+                    # Offsets advance only after the rows are durably committed.
+                    consumer.commit()
                     buffer.clear()
     except KeyboardInterrupt:
         print("Stopping consumer...")
@@ -85,6 +90,7 @@ def main() -> None:
             with conn.cursor() as cur:
                 cur.executemany(INSERT_SQL, buffer)
                 conn.commit()
+            consumer.commit()
         consumer.close()
         conn.close()
 

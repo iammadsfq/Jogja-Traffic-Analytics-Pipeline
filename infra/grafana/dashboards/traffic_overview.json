@@ -214,8 +214,8 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
-          "format": "table",
-          "rawSql": "SELECT INITCAP(direction) AS metric, SUM(event_count)::bigint AS value FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY direction ORDER BY value DESC",
+          "format": "time_series",
+          "rawSql": "SELECT NOW() AS time, INITCAP(direction) AS metric, SUM(event_count)::bigint AS value FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY direction ORDER BY value DESC",
           "refId": "A"
         }
       ],
@@ -248,8 +248,8 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
-          "format": "table",
-          "rawSql": "SELECT object_type AS metric, SUM(event_count)::bigint AS value FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY object_type ORDER BY value DESC",
+          "format": "time_series",
+          "rawSql": "SELECT NOW() AS time, object_type AS metric, SUM(event_count)::bigint AS value FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY object_type ORDER BY value DESC",
           "refId": "A"
         }
       ],
@@ -308,11 +308,11 @@
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
           "format": "table",
-          "rawSql": "SELECT camera_id, location, SUM(event_count) AS total FROM fact_traffic_events WHERE $__timeFilter(time) GROUP BY camera_id, location ORDER BY total DESC LIMIT 20",
+          "rawSql": "SELECT camera_id, MAX(location) AS location, SUM(total_events) AS total FROM fact_traffic_agg_1m WHERE $__timeFilter(bucket) AND camera_id LIKE 'cam_%' AND location = 'seed-source' GROUP BY camera_id ORDER BY total DESC LIMIT 20",
           "refId": "A"
         }
       ],
-      "title": "Top Cameras by Event Count",
+      "title": "Top Cameras by Event Count (Scale)",
       "type": "table"
     },
     {

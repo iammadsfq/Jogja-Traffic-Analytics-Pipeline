@@ -38,28 +38,3 @@ SELECT create_hypertable('fact_traffic_agg_1m', 'bucket', if_not_exists => TRUE)
 
 CREATE INDEX IF NOT EXISTS idx_fact_traffic_agg_1m_camera_bucket
     ON fact_traffic_agg_1m (camera_id, bucket DESC);
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS agg_traffic_1m
-WITH (timescaledb.continuous) AS
-SELECT
-    time_bucket('1 minute', time) AS bucket,
-    camera_id,
-    object_type,
-    direction,
-    SUM(event_count) AS total_events
-FROM fact_traffic_events
-GROUP BY bucket, camera_id, object_type, direction;
-
-DO $$
-BEGIN
-    PERFORM add_continuous_aggregate_policy(
-        'agg_traffic_1m',
-        start_offset => INTERVAL '2 hours',
-        end_offset => INTERVAL '1 minute',
-        schedule_interval => INTERVAL '1 minute'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN
-        RAISE NOTICE 'Policy already exists, skipping';
-END
-$$;

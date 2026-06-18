@@ -1,6 +1,8 @@
 # Jogja Traffic Analytics Pipeline
 
-Scalable real-time traffic and crowd analytics pipeline untuk memproses metadata deteksi objek dari banyak stream CCTV secara event-driven.
+Scalable real-time traffic analytics pipeline untuk memproses metadata event deteksi objek dari banyak kamera secara event-driven.
+
+Fokus repo ini adalah **data engineering**: Kafka → Spark Structured Streaming → TimescaleDB → Grafana, di-scale ke 100 kamera lewat mock ingestion. Sumber event di sini bersifat **mock/simulasi** (event sintetis dengan skema `traffic.raw`). Inference computer-vision dari stream CCTV nyata (YOLO, HLS, direction tracking) **di luar scope** repo ini dan dipindahkan ke proyek terpisah `../jogja-cctv-cv/`. Kedua proyek berbagi satu kontrak data: skema event `traffic.raw` di bawah.
 
 ## 1) Project Summary
 
@@ -30,34 +32,18 @@ Catatan realistis performa:
 
 ## 3) Legal & Ethics Check
 
-Status: **Bisa dibuat legal-compliant**, dengan guardrail berikut.
+Repo ini hanya memakai **event sintetis/mock** (tidak ada stream CCTV nyata, tidak ada rekaman video, tidak ada PII), sehingga tidak ada isu legal sumber data.
 
-Penting: dokumen ini bukan nasihat hukum. Untuk produksi, tetap verifikasi kebijakan resmi sumber data.
-
-Prinsip kepatuhan:
-
-- Hanya simpan **metadata agregat** dan event analitik (bukan rekaman video mentah).
-- Jangan simpan informasi identitas personal.
-- Terapkan rate limit dan jadwal pengambilan data yang wajar.
-- Hormati ketentuan penggunaan situs/sumber data. Jika syarat penggunaan tidak jelas, mintakan izin tertulis ke pengelola data.
-- Sediakan kill switch untuk mematikan ingestion jika ada permintaan penghentian.
-
-Checklist go/no-go sebelum running live ingestion:
-
-- [ ] Halaman/sumber data menyatakan akses publik untuk pemantauan.
-- [ ] Tidak ada larangan eksplisit scraping/restreaming pada terms/disclaimer.
-- [ ] Pipeline hanya menyimpan metadata non-PII.
-- [ ] Ada contact path untuk klarifikasi izin penggunaan data.
-
-Jika satu saja gagal, gunakan mode simulasi/offline dataset sampai legal clear.
+Catatan: jika nanti pipeline ini disambung ke sumber CCTV nyata (lihat proyek `../jogja-cctv-cv/`), guardrail legal (akses publik, larangan scraping, simpan metadata non-PII saja, kill switch) wajib ditinjau di sisi proyek tersebut sebelum scale-up.
 
 ## 4) Zero-Cost Architecture
 
 Komponen utama:
 
-1. **Inference Layer (Producer)**
-	- Python (OpenCV + YOLOv8) ekstraksi metadata objek per frame/interval.
+1. **Event Source Layer (Producer)**
+	- Producer Python menghasilkan event metadata deteksi objek (mock/sintetis) sesuai skema `traffic.raw`.
 	- Publish event JSON ke Kafka topic `traffic.raw`.
+	- Catatan: produksi event dari inference CCTV nyata ada di proyek terpisah `../jogja-cctv-cv/` dan memakai skema event yang sama.
 2. **Ingestion Layer (Broker)**
 	- Apache Kafka sebagai durable buffer.
 3. **Stream Processing Layer**
@@ -147,24 +133,16 @@ Hasil: arsitektur bisa diuji bottleneck-nya secara realistis tanpa biaya hardwar
 
 - **Latency**: data muncul di dashboard < 3 detik setelah event.
 - **Throughput**: minimal 500 events/detik pada laptop standar.
-- **Reliability**: tidak ada data hilang saat komponen selain Kafka restart sementara.
+- **Reliability**: at-least-once — consumer commit offset Kafka hanya setelah row durably ter-commit ke DB, sehingga tidak ada data hilang saat komponen selain Kafka restart sementara (duplikat mungkin terjadi saat crash di antara commit DB dan commit offset; dedup via `event_id` = future work).
 
-## 10) Getting Data (Praktis & Aman)
+## 10) Sumber Data
 
-Sumber utama (target):
+Repo ini memakai **event sintetis/mock**:
 
-- Portal CCTV Pemda DIY: https://jogjaprov.go.id/cctv
+- `src/producer/event_producer.py` — generate event single-stream sesuai skema `traffic.raw`.
+- `src/producer/mock_duplicator.py` — duplikasi event seed ke N kamera virtual untuk uji skala.
 
-Fallback jika ada kendala akses/izin:
-
-- Gunakan video publik/open dataset lalu jalankan pipeline dalam mode simulasi.
-- Tetap pakai skema event yang sama agar komponen downstream tidak berubah.
-
-Best practice ingestion:
-
-- Sampling frame seperlunya (misal 1-2 FPS) agar ringan.
-- Simpan hanya metadata event.
-- Tambahkan retry + dead-letter strategy di producer/consumer.
+Untuk produksi event dari stream CCTV nyata (OpenCV + YOLO + direction tracking), gunakan proyek terpisah `../jogja-cctv-cv/` yang menulis ke topic `traffic.raw` dengan skema yang sama, sehingga seluruh komponen downstream pipeline ini tidak perlu berubah.
 
 ## 11) Minimal Run Plan (No Cost)
 
@@ -186,7 +164,6 @@ Catatan Phase 2 (Spark sink):
 - `.env.example`
 - `requirements.txt`
 - `requirements-runtime.txt`
-- `requirements-inference.txt`
 - `infra/postgres/init/001_init.sql`
 - `src/producer/event_producer.py`
 - `src/producer/mock_duplicator.py`
@@ -208,9 +185,8 @@ Prerequisite:
 2. Jalankan infrastruktur:
 	- `docker compose --env-file .env up -d`
 3. Install dependency Python:
-	- core pipeline: `pip install -r requirements.txt`
+	- core pipeline (termasuk Spark): `pip install -r requirements.txt`
 	- runtime minimal producer/consumer: `pip install -r requirements-runtime.txt`
-	- opsional model inference: `pip install -r requirements-inference.txt`
 4. Jalankan producer event sample:
 	- `python src/producer/event_producer.py`
 5. Jalankan consumer Kafka ke PostgreSQL (terminal baru):
@@ -243,6 +219,8 @@ Script ini otomatis:
 
 - Menjalankan seed producer (`traffic.seed`) + mock duplicator 100 kamera + consumer DB.
 - Mengukur rows ingested, throughput (events/s), ingestion lag, dan active camera count.
+
+> Ingestion dari stream CCTV nyata (HLS + YOLO + direction tracking) tidak ada di repo ini — lihat proyek terpisah `../jogja-cctv-cv/`. Output proyek tersebut memakai skema event `traffic.raw` yang sama sehingga langsung kompatibel dengan pipeline ini.
 
 ### Query cek cepat di PostgreSQL
 
